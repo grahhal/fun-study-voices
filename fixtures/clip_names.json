@@ -1,0 +1,50 @@
+{
+  "_comment": "Shared by the app (src/core/clips.test.ts) and the voice worker (tests): the same sentence must give the same tidy key and clip file name (first 20 hex of SHA-256 of the UTF-8 key).",
+  "cases": [
+    [
+      "Which animal gives us milk?",
+      "Which animal gives us milk?",
+      "92f6b89fc445741fe4eb"
+    ],
+    [
+      "  Cow  ",
+      "Cow",
+      "71e26099295bfff7876c"
+    ],
+    [
+      "Two\n  lines\there",
+      "Two lines here",
+      "2eb3ee4a939c81d4d71f"
+    ],
+    [
+      "‏ما لون الموز؟‏",
+      "ما لون الموز؟",
+      "b1f6e6186900689f1191"
+    ],
+    [
+      "⁧أرنب⁩",
+      "أرنب",
+      "3e401173281b59e62fd8"
+    ],
+    [
+      "Great job!",
+      "Great job!",
+      "80d99dffe9657d82c42c"
+    ],
+    [
+      "حاول مرة أخرى!",
+      "حاول مرة أخرى!",
+      "eb8661a738eb24289901"
+    ],
+    [
+      "🐄 emoji is kept",
+      "🐄 emoji is kept",
+      "f0260e694819d7743b26"
+    ],
+    [
+      "A",
+      "A",
+      "559aead08264d5795d39"
+    ]
+  ]
+}

@@ -1,0 +1,40 @@
+# Records Fun Study's queued sentences every 10 minutes (free and unlimited for a public repo).
+name: Record voices
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+concurrency:
+  group: record-voices
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Keep the English voice files between runs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/fun-study-voices
+          key: kokoro-v1.0
+      - run: pip install -r requirements.txt
+      - name: Check the clip names still match the app
+        run: python -m pytest tests -q
+      - name: Record
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+        run: python record.py
