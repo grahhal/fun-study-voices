@@ -2,6 +2,7 @@
 
 Runs every few minutes on GitHub Actions (see .github/workflows/record.yml), or locally:
     python record.py --local-dir ../voice-out      # write clips to a folder instead of R2 (for testing)
+    python record.py --check                       # only say whether there is anything to record (prints work=true/false)
 
 Environment (GitHub secrets; never printed):
     SUPABASE_URL, SUPABASE_SERVICE_KEY            read the queue, record clips, delete queued text
@@ -174,22 +175,33 @@ def fixed_phrases() -> list[dict]:
     return [{"id": None, "lang": lang, "text": t} for lang in ("en", "ar") for t in data[lang]]
 
 
+def plan(db: Db, has_azure: bool):
+    queued = db.jobs(MAX_PER_RUN)
+    candidates = fixed_phrases() + queued
+    recorded = db.recorded(sorted({clip_path(j["lang"], j["text"]) for j in candidates}))
+    azure_left = azure_budget_left(db.azure_used_this_month(), db.azure_limit()) if has_azure else 0
+    return plan_jobs(candidates, recorded, azure_left)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--local-dir", help="write clips to this folder instead of R2 (testing)")
+    ap.add_argument("--check", action="store_true", help="only print work=true/false (needs no extra packages)")
     args = ap.parse_args()
 
     db = Db(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+    if args.check:  # a quick look so empty runs stop in seconds (keeps GitHub's free minutes for a private repo)
+        done, now, _later = plan(db, bool(os.environ.get("AZURE_SPEECH_KEY")))
+        work = bool(now) or any(j["id"] is not None for j in done)
+        print(f"work={'true' if work else 'false'}", flush=True)
+        return 0
+
     store = LocalDir(args.local_dir) if args.local_dir else R2(os.environ["R2_ACCOUNT_ID"], os.environ["R2_ACCESS_KEY_ID"],
                                                                  os.environ["R2_SECRET_ACCESS_KEY"], os.environ["R2_BUCKET"])
     azure = Azure(os.environ["AZURE_SPEECH_KEY"], os.environ["AZURE_SPEECH_REGION"]) if os.environ.get("AZURE_SPEECH_KEY") else None
     kokoro = Kokoro()
 
-    queued = db.jobs(MAX_PER_RUN)
-    candidates = fixed_phrases() + queued
-    recorded = db.recorded(sorted({clip_path(j["lang"], j["text"]) for j in candidates}))
-    azure_left = azure_budget_left(db.azure_used_this_month(), db.azure_limit()) if azure else 0
-    done, now, later = plan_jobs(candidates, recorded, azure_left)
+    done, now, later = plan(db, azure is not None)
 
     finished = [j["id"] for j in done if j["id"] is not None]
     made = failed = 0

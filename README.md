@@ -14,4 +14,6 @@ deletes each sentence once it is recorded, and names clips by a scrambled code (
 Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
 `R2_BUCKET`, `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`.
 
+Each run first does a quick check (`python record.py --check`) and stops in seconds when there is nothing to record.
+
 Local test: `python record.py --local-dir ../voice-out` (writes clips to a folder) · Tests: `python -m pytest tests -q`
