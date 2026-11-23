@@ -1,10 +1,13 @@
-# Records Fun Study's queued sentences every 10 minutes (free and unlimited for a public repo).
+# Records Fun Study's queued sentences when Fun Study asks (after approvals) and on a schedule (free for a public repo).
 # A run with nothing to record stops after a quick check.
 name: Record voices
 on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch: {}
+  # Fun Study asks for a recording right after a parent approves questions (GitHub's schedule is often hours late).
+  repository_dispatch:
+    types: [record]
 concurrency:
   group: record-voices
   cancel-in-progress: false
