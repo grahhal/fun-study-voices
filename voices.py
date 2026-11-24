@@ -29,17 +29,41 @@ def clip_name(text: str) -> str:
     return hashlib.sha256(clip_key(text).encode("utf-8")).hexdigest()[:20]
 
 
+# Math signs between numbers are read as words (same as app/src/core/speakable.ts; shared examples in
+# fixtures/speakable.json): "3 + 4 = ?" is recorded as "3 plus 4 equals ?".
+MATH_WORDS = {
+    "en": {"plus": "plus", "minus": "minus", "times": "times", "divided": "divided by", "less": "is less than",
+           "more": "is greater than", "equals": "equals", "blank": "what"},
+    "ar": {"plus": "زائد", "minus": "ناقص", "times": "ضرب", "divided": "تقسيم", "less": "أصغر من", "more": "أكبر من",
+           "equals": "يساوي", "blank": "كم"},
+}
+MATH_SIGN = {"+": "plus", "-": "minus", "−": "minus", "–": "minus", "×": "times", "*": "times", "x": "times",
+             "X": "times", "÷": "divided", "/": "divided", "<": "less", ">": "more"}
+_OPERAND = "[0-9٠-٩?؟_]"
+_BINARY = re.compile(rf"(?<={_OPERAND})\s*([+\-−–×*xX÷/<>])\s*(?={_OPERAND})")
+
+
+def speakable(text: str, lang: str) -> str:
+    """The words a voice should say for this text."""
+    w = MATH_WORDS["ar" if lang == "ar" else "en"]
+    out = BIDI_MARKS.sub("", text)
+    out = _BINARY.sub(lambda m: f" {w[MATH_SIGN[m.group(1)]]} ", out)
+    out = re.sub(r"\s*=\s*", f" {w['equals']} ", out)
+    out = re.sub(r"_{2,}", f" {w['blank']} ", out)
+    return " ".join(out.split())
+
+
 def clip_path(lang: str, text: str) -> str:
-    """Where the clip is stored on R2 (also its key in the voice_clips table)."""
-    return f"{VOICE_VERSION}/{lang}/{clip_name(text)}.mp3"
+    """Where the clip is stored on R2 (also its key in the voice_clips table), named by what is said aloud."""
+    return f"{VOICE_VERSION}/{lang}/{clip_name(speakable(text, lang))}.mp3"
 
 
 def azure_ssml(text: str) -> str:
-    """The request body for Azure: the sentence, escaped, in Zariyah's voice with the owner's settings."""
+    """The request body for Azure: the sentence as read aloud, escaped, in Zariyah's voice with the owner's settings."""
     return (
         '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ar-SA">'
         f'<voice name="{AZURE_AR_VOICE}"><prosody rate="{AZURE_AR_RATE}" pitch="{AZURE_AR_PITCH}">'
-        f"{escape(clip_key(text))}</prosody></voice></speak>"
+        f"{escape(speakable(text, 'ar'))}</prosody></voice></speak>"
     )
 
 

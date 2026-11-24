@@ -35,6 +35,7 @@ from voices import (
     clip_key,
     clip_path,
     plan_jobs,
+    speakable,
 )
 
 HERE = Path(__file__).resolve().parent
@@ -114,7 +115,7 @@ class Kokoro:
         import numpy as np
         from scipy.signal import resample_poly
 
-        audio, rate = self._load().create(clip_key(text), voice=EN_VOICE, speed=EN_SPEED, lang="en-us")
+        audio, rate = self._load().create(speakable(text, "en"), voice=EN_VOICE, speed=EN_SPEED, lang="en-us")
         audio = resample_poly(audio, *EN_PITCH).astype(np.float32)  # a little higher, to sound younger
         pcm = (np.clip(audio, -1.0, 1.0) * 32767).astype("<i2").tobytes()
         enc = lameenc.Encoder()
