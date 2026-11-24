@@ -50,6 +50,10 @@ def speakable(text: str, lang: str) -> str:
     out = _BINARY.sub(lambda m: f" {w[MATH_SIGN[m.group(1)]]} ", out)
     out = re.sub(r"\s*=\s*", f" {w['equals']} ", out)
     out = re.sub(r"_{2,}", f" {w['blank']} ", out)
+    # Letter groups written with a hyphen ("-ing", "sh-") are spelled: "i, n, g".
+    spell = lambda m: " " + ", ".join(m.group(1).lower()) + " "
+    out = re.sub(r"(?<![A-Za-z-])-([A-Za-z]{1,4})(?![A-Za-z-])", spell, out)
+    out = re.sub(r"(?<![A-Za-z-])([A-Za-z]{1,4})-(?![A-Za-z-])", spell, out)
     return " ".join(out.split())
 
 
